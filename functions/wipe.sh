@@ -14,46 +14,52 @@ fi
 
 if isScheduledTime "wipe" || isMonthlyUpdate
 then
-  writeLog "wipe" "Doing server wipe"
-
-  writeLog "wipe" "Stopping server"
-  serverManager "stop"
-
-  if [ $(getLock "cycle") = "$wipe_bps" ]
+  if [[ $(date -d "$(for i in `seq 1 93`; do date '+%Y-%m-%d  %w' -d "+$((i - 31)) days"; done | sed 's|0$|7|g' | grep `date +"%Y-%m" --date="$(date +%Y-%m-15) 0 month"` | grep 4$ | head -n 1 | cut -f1 -d" ") +1 days" +"%Y-%m-%d") != $(date +%F) ]]
   then
-    writeLog "wipe" "Server full wipe"
-    serverManager "fw"
-    setLock "cycle" "1"
-    WIPE_TYPE="FULL"
+    writeLog "wipe" "Doing server wipe"
+
+    writeLog "wipe" "Stopping server"
+    serverManager "stop"
+
+    if [ $(getLock "cycle") = "$wipe_bps" ]
+    then
+      writeLog "wipe" "Server full wipe"
+      serverManager "fw"
+      setLock "cycle" "1"
+      WIPE_TYPE="FULL"
+    else
+      writeLog "wipe" "Server map wipe"
+      serverManager "mw"
+      setLock "cycle" "$(($(getLock "cycle")+1))"
+      WIPE_TYPE="MAP"
+    fi
+
+    if [ "$wipe_plugins_data" = true ]
+    then
+      writeLog "wipe" "Removing plugins data"
+
+      for FILE in "${delete[@]}"
+      do
+        rm $executable_path/serverfiles/$FILE
+      done
+    fi
+
+    writeLog "wipe" "Updating map seed"
+    if [ "$map_seed" = "random" ]
+    then
+      map_seed=$((1 + RANDOM*RANDOM % 2147483647))
+    fi
+    sed -i -- 's/^seed=.*/seed="'$map_seed'"/g' $executable_path/lgsm/config-lgsm/rustserver/$lgsm_config
+
+    writeLog "wipe" "Starting server"
+    serverManager "start"
+
+    if [ "$wipe_webhook" != false ]
+    then
+      curl --max-time 30 --data "wipe=$WIPE_TYPE" $wipe_webhook
+    fi
   else
-    writeLog "wipe" "Server map wipe"
-    serverManager "mw"
-    setLock "cycle" "$(($(getLock "cycle")+1))"
-    WIPE_TYPE="MAP"
-  fi
-
-  if [ "$wipe_plugins_data" = true ]
-  then
-    writeLog "wipe" "Removing plugins data"
-
-    for FILE in "${delete[@]}"
-    do
-      rm $executable_path/serverfiles/$FILE
-    done
-  fi
-
-  writeLog "wipe" "Updating map seed"
-  if [ "$map_seed" = "random" ]
-  then
-    map_seed=$((1 + RANDOM*RANDOM % 2147483647))
-  fi
-  sed -i -- 's/^seed=.*/seed="'$map_seed'"/g' $executable_path/lgsm/config-lgsm/rustserver/$lgsm_config
-
-  writeLog "wipe" "Starting server"
-  serverManager "start"
-
-  if [ "$wipe_webhook" != false ]
-  then
-    curl --max-time 30 --data "wipe=$WIPE_TYPE" $wipe_webhook
+    writeLog "wipe" "Already wiped @ force wipe"
+    exit 0
   fi
 fi
