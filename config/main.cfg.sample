@@ -30,3 +30,11 @@ map_seed="random"
 
 # log all script action to file
 log_actions=false
+
+### RCON script
+rustsend=/home/tabified/rust-rcon/rustrconsend.js
+
+### Server RCON variables
+serverip=IP
+serverport=28016
+rconpass=CHANGEME

@@ -15,6 +15,24 @@ then
     writeLog "update" "Waiting for oxide update"
     exit 0
   fi
+  if ! isMonthlyUpdate && ! isScheduledTime
+  then
+    node $rustsend "say Server restart in 3 minutes!! Rust Server Update is available. Update your Client before reconnecting" ${serverip} ${serverport} ${rconpass}
+    echo "Sleeping for 3m"
+    sleep 1m
+    node $rustsend "say Server restarting in 2 minutes!! Rust Server Update is available." ${serverip} ${serverport} ${rconpass}
+    sleep 1m
+    node $rustsend "say Server restarting in 1 minute!! Rust Server Update is available." ${serverip} ${serverport} ${rconpass}
+    sleep 30s
+    node $rustsend "say Server restarting in 30 seconds!! Rust Server Update is available." ${serverip} ${serverport} ${rconpass}
+    sleep 20s
+    for ((i=10; i>=1; i--))
+    do
+      node $rustsend "say Server restarting in $i seconds!!" ${serverip} ${serverport} ${rconpass}
+      sleep 1s
+    done
+    node $rustsend "server.save" ${serverip} ${serverport} ${rconpass}
+  fi
   writeLog "update" "Doing server update"
 
   writeLog "update" "Stopping server"
